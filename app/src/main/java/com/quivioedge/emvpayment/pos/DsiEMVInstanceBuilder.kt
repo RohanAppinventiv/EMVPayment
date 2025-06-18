@@ -1,0 +1,23 @@
+package com.quivioedge.emvpayment.pos
+
+import android.annotation.SuppressLint
+import android.content.Context
+import com.datacap.android.dsiEMVAndroid
+
+object DsiEMVInstanceBuilder {
+    @SuppressLint("StaticFieldLeak")
+    private var emvInstance: dsiEMVAndroid? = null
+
+    private fun initialize(context: Context): dsiEMVAndroid? {
+        if (emvInstance == null) {
+            emvInstance = dsiEMVAndroid(context.applicationContext)
+        }
+        return emvInstance
+    }
+
+    fun getInstance(context: Context): dsiEMVAndroid {
+        return initialize(context)
+            ?: throw IllegalStateException("dsiEMVAndroidManager is not initialized. Call initialize(context) first.")
+    }
+
+}
