@@ -15,11 +15,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.quivioedge.emvpayment.pos.CardBin
-import com.quivioedge.emvpayment.pos.DsiEMVManager
-import com.quivioedge.emvpayment.pos.MessageEvent
-import com.quivioedge.emvpayment.pos.PosCardListener
-import com.quivioedge.emvpayment.pos.PosTransactionListener
+import com.quivioedge.emvlib.pos.CardBin
+import com.quivioedge.emvlib.pos.DsiEMVManager
+import com.quivioedge.emvlib.pos.MessageEvent
+import com.quivioedge.emvlib.pos.PosCardListener
+import com.quivioedge.emvlib.pos.PosTransactionListener
 import com.quivioedge.emvpayment.ui_component.CTAsSection
 import com.quivioedge.emvpayment.ui_component.Header
 import com.quivioedge.emvpayment.ui_component.ModalBottomSheetComponent
@@ -75,7 +75,7 @@ fun PaymentScreen(
         PriceLabel()
 
         CTAsSection(
-           payViaCreditCardCallback = {scope.launch { posManager.runTransaction() }} ,
+            payViaCreditCardCallback = {scope.launch { posManager.runTransaction() }} ,
             payViaInHouseCardCallback = {scope.launch { posManager.collectCardDetails() }}
         )
 
