@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -15,8 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.navigation.NavController
 import com.quivioedge.emvlib.pos.CardBin
-import com.quivioedge.emvlib.pos.DsiEMVManager
+import com.quivioedge.emvlib.pos.EMVBridge
 import com.quivioedge.emvlib.pos.MessageEvent
 import com.quivioedge.emvlib.pos.PosCardListener
 import com.quivioedge.emvlib.pos.PosTransactionListener
@@ -24,14 +28,17 @@ import com.quivioedge.emvpayment.ui_component.CTAsSection
 import com.quivioedge.emvpayment.ui_component.Header
 import com.quivioedge.emvpayment.ui_component.ModalBottomSheetComponent
 import com.quivioedge.emvpayment.ui_component.PriceLabel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun PaymentScreen(
     modifier: Modifier = Modifier,
-    posManager: DsiEMVManager,
-    showSnackBar: (String) -> Unit
+    posManager: EMVBridge,
+    showSnackBar: (String) -> Unit,
+    navController: NavController
 ) {
 
     var bottomSheetVisibility by remember { mutableStateOf(false) }
@@ -70,13 +77,27 @@ fun PaymentScreen(
             )
             .then(modifier)
     ) {
-        Header()
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Header()
+            IconButton(
+                onClick = { navController.navigate("card_reader") },
+                modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd)
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = Color.White
+                )
+            }
+        }
 
         PriceLabel()
 
         CTAsSection(
-            payViaCreditCardCallback = {scope.launch { posManager.runTransaction() }} ,
-            payViaInHouseCardCallback = {scope.launch { posManager.collectCardDetails() }}
+            payViaCreditCardCallback = {scope.launch { posManager.startEMVTransaction() }} ,
+            payViaInHouseCardCallback = {scope.launch { posManager.collectEMVCardData() }}
         )
 
         Spacer(
@@ -90,7 +111,7 @@ fun PaymentScreen(
 
 @Composable
 fun AddListeners(
-    posManager: DsiEMVManager,
+    posManager: EMVBridge,
     showSnackBar: (String) -> Unit,
     cardDataReceived: (CardBin) -> Unit
 ) {
@@ -131,12 +152,16 @@ fun AddListeners(
             }
         }
 
-        posManager.registerMessageBus(messageBus)
-        posManager.registerCardReaderListener(posCardReaderListener)
-        posManager.registerTransactionListener(posTransactionalListener)
+        CoroutineScope(Dispatchers.Main).launch {
+            posManager.listenMessageBus()
+            posManager.listenCardResults()
+            posManager.listenTransactionResults()
+        }
 
         onDispose {
-            posManager.clearTransactionListener()
+            CoroutineScope(Dispatchers.Main).launch {
+                posManager.clearAllListeners()
+            }
         }
     }
 }

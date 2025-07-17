@@ -10,7 +10,7 @@ object DsiEMVInstanceBuilder {
 
     private fun initialize(context: Context): dsiEMVAndroid? {
         if (emvInstance == null) {
-            emvInstance = dsiEMVAndroid(context.applicationContext)
+            emvInstance = dsiEMVAndroid(context)
         }
         return emvInstance
     }

@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-class DsiEMVManager(val context: Context) {
+internal class DsiEMVManager(val context: Context) {
     private var currentPosState: PosState = PosState.Idle
     private var posTransactionListener: PosTransactionListener? = null
     private var posCardListener: PosCardListener? = null
@@ -105,32 +105,40 @@ class DsiEMVManager(val context: Context) {
     }
 
     suspend fun collectCardDetails() = withContext(Dispatchers.IO) {
+        Log.d("DsiEMVManager", "collectCardDetails called, currentPosState: $currentPosState")
         if (currentPosState == PosState.Idle) {
+            Log.d("DsiEMVManager", "Calling posTransactionExecutor.collectCardData()")
             posTransactionExecutor.collectCardData()
         } else {
+            Log.e("DsiEMVManager", "Cannot collect card details, transaction running")
             posTransactionListener?.onTransactionSFailed("Some other transactions running....")
         }
     }
 
     suspend fun runTransaction() = withContext(Dispatchers.IO) {
-        when (currentPosState) {
-            PosState.Idle -> {
-                posTransactionExecutor.doSale()
+        Log.d("DsiEMVManager", "runTransaction called, currentPosState: $currentPosState")
+        try {
+            when (currentPosState) {
+                PosState.Idle -> {
+                    Log.d("DsiEMVManager", "Calling posTransactionExecutor.doSale()")
+                    posTransactionExecutor.doSale()
+                }
+                PosState.RequirePosConfig -> {
+                    Log.d("DsiEMVManager", "Calling posTransactionExecutor.downloadParam()")
+                    posTransactionExecutor.downloadParam()
+                }
+                PosState.EmvSaleCompleted -> {
+                    Log.d("DsiEMVManager", "Resetting pin pad after sale completed")
+                    resetPinPad()
+                    posTransactionListener?.onTransactionSuccessFull("Transaction successfully completed!")
+                }
+                is PosState.ResetPad -> {
+                    Log.d("DsiEMVManager", "Resetting pin pad (ResetPad state)")
+                    resetPinPad()
+                }
             }
-
-            PosState.RequirePosConfig -> {
-                posTransactionExecutor.downloadParam()
-            }
-
-            PosState.EmvSaleCompleted -> {
-                resetPinPad()
-                posTransactionListener?.onTransactionSuccessFull("Transaction successfully completed!")
-            }
-
-            is PosState.ResetPad -> {
-                resetPinPad()
-            }
-
+        } catch (e: Exception) {
+            Log.e("DsiEMVManager", "Exception in runTransaction", e)
         }
     }
 

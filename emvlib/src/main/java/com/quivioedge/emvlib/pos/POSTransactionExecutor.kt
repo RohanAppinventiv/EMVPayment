@@ -1,6 +1,7 @@
 package com.quivioedge.emvlib.pos
 
 import android.content.Context
+import android.util.Log
 import com.datacap.android.ProcessTransactionResponseListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -41,9 +42,11 @@ class POSTransactionExecutor(context: Context) {
 
     suspend fun doSale(){
         withContext(Dispatchers.IO){
-            dsiEMVAndroidLib.ProcessTransaction(
-                requestBuilder.buildEMVSaleRequest()
-            )
+            Log.d("POSTransactionExecutor", "Inside doSale()")
+            val request = requestBuilder.buildEMVSaleRequest()
+            Log.d("POSTransactionExecutor", "Request prepared: $request")
+
+            dsiEMVAndroidLib.ProcessTransaction(request)
         }
     }
 

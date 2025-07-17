@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "EMVPayment"
 include(":app")
 include(":emvlib")
+include(":emvCardReaderLib")

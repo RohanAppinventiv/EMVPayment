@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 
 
 @Composable
-fun Header(){
+fun Header(title: String = "Collect Payment"){
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -26,22 +26,23 @@ fun Header(){
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Collect Payment",
+            text = title,
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
             letterSpacing = 1.sp
         )
-        Text(
-            text = "Sonny's Carwash Factory",
-            fontSize = 16.sp,
-            fontStyle = FontStyle.Italic,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFFB0B6BE),
-            modifier = Modifier
-                .padding(top = 6.dp)
-        )
-
+        if (title == "Collect Payment") {
+            Text(
+                text = "Sonny's Carwash Factory",
+                fontSize = 16.sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFFB0B6BE),
+                modifier = Modifier
+                    .padding(top = 6.dp)
+            )
+        }
         HorizontalDivider(
             modifier = Modifier
                 .padding(top = 12.dp)

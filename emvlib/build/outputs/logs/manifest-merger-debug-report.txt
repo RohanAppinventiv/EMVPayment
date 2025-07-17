@@ -3,10 +3,9 @@ manifest
 ADDED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml:2:1-4:12
 INJECTED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml:2:1-4:12
 	package
-		ADDED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml:3:5-36
 		INJECTED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml
 	xmlns:android
-		ADDED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml:2:11-69
+		ADDED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml:3:5-63
 uses-sdk
 INJECTED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/ai/AndroidStudioProjects/EMVPayment/emvlib/src/main/AndroidManifest.xml
