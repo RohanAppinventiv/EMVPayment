@@ -32,14 +32,12 @@ class PosXMLExtractor {
 
     fun resolvePrePaidCardData(xml: String): CRPrepaidResponse {
         return if (cmdStatus(xml) == "Success") {
-            CRPrepaidResponse.Success(
-                BIN(
-                    value = ""
-                )
+            CRPrepaidResponse.Error(
+                getCode(xml),
+                getMessage(xml)
             )
-        } else CRPrepaidResponse.Error(
-            getCode(xml),
-            getMessage(xml)
+        } else  CRPrepaidResponse.Success(
+            cardBin = mapToPrepaidStripeResponse(xml)
         )
     }
 
@@ -64,8 +62,10 @@ class PosXMLExtractor {
         val result = mutableMapOf<String, String>()
 
         // Extract <TranResponse> block
-        val tranResponseRegex = Regex("(?s)<TranResponse>(.*?)</TranResponse>", RegexOption.IGNORE_CASE)
-        val tranResponseMatch = tranResponseRegex.find(xml)?.groupValues?.get(1) ?: return emptyMap()
+        val tranResponseRegex =
+            Regex("(?s)<TranResponse>(.*?)</TranResponse>", RegexOption.IGNORE_CASE)
+        val tranResponseMatch =
+            tranResponseRegex.find(xml)?.groupValues?.get(1) ?: return emptyMap()
 
         // Match all <Key>value</Key> pairs within <TranResponse>
         val keyValueRegex = Regex("<(\\w+)>(.*?)</\\1>", RegexOption.IGNORE_CASE)
@@ -102,5 +102,28 @@ class PosXMLExtractor {
             applicationLabel = map["ApplicationLabel"] ?: "",
             payAPIId = map["PayAPI_Id"] ?: ""
         )
+    }
+
+    fun extractAllPrepaidCardKeyValues(xml: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+
+        // Extract <RStream> content
+        val rStreamRegex = Regex("(?s)<RStream>(.*?)</RStream>", RegexOption.IGNORE_CASE)
+        val rStreamContent = rStreamRegex.find(xml)?.groupValues?.get(1) ?: return emptyMap()
+
+        // Match all <Key>value</Key> pairs under RStream (excluding nested ones)
+        val keyValueRegex = Regex("<(\\w+)>([^<]*)</\\1>", RegexOption.IGNORE_CASE)
+        keyValueRegex.findAll(rStreamContent).forEach { matchResult ->
+            val key = matchResult.groupValues[1]
+            val value = matchResult.groupValues[2].trim()
+            result[key] = value
+        }
+
+        return result
+    }
+
+    fun mapToPrepaidStripeResponse(xml: String): BIN{
+        val map = extractAllPrepaidCardKeyValues(xml)
+        return BIN (value = map["PrePaidTrack2"] ?: "0123456789")
     }
 }

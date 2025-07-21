@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,29 +35,38 @@ import com.quivioedge.emvpayment.ui_component.CTAsSection
 import com.quivioedge.emvpayment.ui_component.Header
 import com.quivioedge.emvpayment.ui_component.PriceLabel
 import com.rohan.emvcardreaderlib.CardData
+import com.rohan.emvcardreaderlib.ConfigurationCommunicator
 import com.rohan.emvcardreaderlib.EMVTransactionCommunicator
 import com.rohan.emvcardreaderlib.SaleTransactionResponse
 import com.rohan.emvcardreaderlib.manager.DsiEMVManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @Composable
 fun CardReaderScreen(
     modifier: Modifier = Modifier,
     cardReaderManager: DsiEMVManager,
     showSnackBar: (String) -> Unit,
-    onBack: () -> Unit,
-    onConfigure: () -> Unit
+    onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var isConfigured by remember { mutableStateOf(false) }
 
+    // Listen for config ping result
+    LaunchedEffect(Unit) {
+        cardReaderManager.pingConfig()
+    }
+
     DisposableEffect(Unit) {
         CoroutineScope(Dispatchers.Main).launch {
-            addCardListener(cardReaderManager, showSnackBar)
+            addCardListener(
+                cardReaderManager,
+                showSnackBar,
+                onUpdateStatus = { status -> isConfigured = status }
+            )
         }
-
         onDispose {
             CoroutineScope(Dispatchers.Main).launch {
                 removeCardListener(cardReaderManager)
@@ -98,7 +108,7 @@ fun CardReaderScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 8.dp)
                 .let {
-                    if (!isConfigured) it.clickable { onConfigure() } else it
+                    if (!isConfigured) it.clickable { setupConfig(cardReaderManager) } else it
                 }
         ) {
             Icon(
@@ -110,13 +120,13 @@ fun CardReaderScreen(
             Text(
                 text = if (isConfigured) "Connected" else "Tap to Configure",
                 color = if (isConfigured) Color(0xFF4CAF50) else Color(0xFFF44336),
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 style = MaterialTheme.typography.bodyLarge
             )
         }
         PriceLabel()
         CTAsSection(
-            payViaCreditCardCallback = { scope.launch { cardReaderManager.runSaleTransaction() } },
+            payViaCreditCardCallback = { scope.launch { cardReaderManager.runSaleTransaction("10.00") } },
             payViaInHouseCardCallback = { scope.launch { cardReaderManager.collectCardDetails() } }
         )
         Spacer(
@@ -127,25 +137,52 @@ fun CardReaderScreen(
     }
 }
 
-fun addCardListener(cardReaderManager: DsiEMVManager, showSnackBar: (String) -> Unit) {
-    cardReaderManager.registerListener(object: EMVTransactionCommunicator {
-        override fun onError(errorMessage: String) {
-            showSnackBar.invoke(errorMessage)
-        }
+private fun setupConfig(cardReaderManager: DsiEMVManager) = runBlocking {
+    cardReaderManager.checkConfig()
+}
 
-        override fun onCardReadSuccessfully(cardData: CardData) {
-            showSnackBar.invoke("Card read successfully with ${cardData.binNumber}")
-        }
+fun addCardListener(
+    cardReaderManager: DsiEMVManager,
+    showSnackBar: (String) -> Unit,
+    onUpdateStatus: (Boolean) -> Unit
+) {
+    cardReaderManager.registerListener(
+        object : EMVTransactionCommunicator {
+            override fun onError(errorMessage: String) {
+                showSnackBar.invoke(errorMessage)
+            }
 
-        override fun onSaleTransactionCompleted(saleDetails: SaleTransactionResponse) {
-            showSnackBar.invoke("Transaction Completed successfully \nCard Type: ${saleDetails.cardType}")
-        }
+            override fun onCardReadSuccessfully(cardData: CardData) {
+                showSnackBar.invoke("Card read successfully with ${cardData.binNumber}")
+            }
 
-        override fun onShowMessage(message: String) {
-            showSnackBar.invoke(message)
-        }
+            override fun onSaleTransactionCompleted(saleDetails: SaleTransactionResponse) {
+                showSnackBar.invoke("Transaction Completed successfully \nCard Type: ${saleDetails.cardType}")
+            }
 
-    })
+            override fun onShowMessage(message: String) {
+                showSnackBar.invoke(message)
+            }
+        },
+
+        object : ConfigurationCommunicator {
+            override fun onConfigError(errorMessage: String) {
+                onUpdateStatus.invoke(false)
+            }
+
+            override fun onConfigPingFailed() {
+                onUpdateStatus.invoke(false)
+            }
+
+            override fun onConfigPingSuccess() {
+                onUpdateStatus.invoke(true)
+            }
+
+            override fun onConfigCompleted() {
+                onUpdateStatus.invoke(true)
+            }
+        }
+    )
 }
 
 

@@ -69,11 +69,7 @@ class MainActivity : ComponentActivity() {
                                         snackbarHostState.showSnackbar(message)
                                     }
                                 },
-                                onBack = {navController.navigateUp()},
-                                isCardReaderConnected = false,
-                                onConfigure = {
-                                    Log.d(PRINT_TAG, "OnConfigure: ")
-                                }
+                                onBack = {navController.navigateUp()}
                             )
                         }
                     }

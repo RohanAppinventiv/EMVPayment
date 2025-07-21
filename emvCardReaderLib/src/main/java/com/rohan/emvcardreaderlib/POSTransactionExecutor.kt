@@ -17,9 +17,9 @@ class POSTransactionExecutor(context: Context) {
         DsiEMVRequestBuilder()
     }
 
-    suspend fun doSale(){
+    suspend fun doSale(amount: String) {
         withContext(Dispatchers.IO){
-            val request = requestBuilder.buildEMVSaleRequest()
+            val request = requestBuilder.buildEMVSaleRequest(amount)
             Log.d(PRINT_TAG, "Sale request prepared: $request")
             dsiEMVAndroidLib.ProcessTransaction(request)
         }

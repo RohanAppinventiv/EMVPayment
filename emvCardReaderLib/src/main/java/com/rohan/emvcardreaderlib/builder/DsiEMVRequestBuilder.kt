@@ -1,5 +1,6 @@
 package com.rohan.emvcardreaderlib.builder
 
+import com.rohan.emvcardreaderlib.Amount
 import com.rohan.emvcardreaderlib.TransType
 import java.util.UUID
 
@@ -58,7 +59,7 @@ class DsiEMVRequestBuilder() {
         """.trimIndent()
     }
 
-    fun buildEMVSaleRequest(): String {
+    fun buildEMVSaleRequest(amount: String): String {
         return """<?xml version="1.0"?>
         <TStream>
         <Transaction>
@@ -72,7 +73,7 @@ class DsiEMVRequestBuilder() {
         <InvoiceNo>1</InvoiceNo>
         <RefNo>1</RefNo>
         <Amount>
-            <Purchase>1.00</Purchase>
+            <Purchase>${amount}</Purchase>
             <Gratuity>0.00</Gratuity>
             <CashBack>0.00</CashBack>
         </Amount>

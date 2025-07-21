@@ -56,9 +56,9 @@ class DsiEMVManager(val context: Context) {
         posTransactionExecutor.downloadConfig()
     }
 
-    suspend fun runSaleTransaction() = withContext(Dispatchers.IO) {
+    suspend fun runSaleTransaction(amount: String) = withContext(Dispatchers.IO) {
         resetPinPad()
-        posTransactionExecutor.doSale()
+        posTransactionExecutor.doSale(amount)
         currentPosState = CrState.EmvSale
     }
 
