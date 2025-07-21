@@ -1,6 +1,7 @@
 package com.quivioedge.emvpayment
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,7 @@ import com.quivioedge.emvlib.pos.EMVBridge
 import com.quivioedge.emvpayment.screens.CardReaderScreen
 import com.quivioedge.emvpayment.screens.PaymentScreen
 import com.quivioedge.emvpayment.ui.theme.EMVPaymentTheme
+import com.rohan.emvcardreaderlib.PRINT_TAG
 import com.rohan.emvcardreaderlib.manager.DsiEMVManager
 import kotlinx.coroutines.launch
 
@@ -67,7 +69,11 @@ class MainActivity : ComponentActivity() {
                                         snackbarHostState.showSnackbar(message)
                                     }
                                 },
-                                onBack = {navController.navigateUp()}
+                                onBack = {navController.navigateUp()},
+                                isCardReaderConnected = false,
+                                onConfigure = {
+                                    Log.d(PRINT_TAG, "OnConfigure: ")
+                                }
                             )
                         }
                     }

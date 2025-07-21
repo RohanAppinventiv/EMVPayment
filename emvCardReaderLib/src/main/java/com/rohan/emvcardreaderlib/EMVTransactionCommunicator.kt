@@ -8,6 +8,14 @@ interface EMVTransactionCommunicator {
     fun onShowMessage(message: String)
 }
 
+// Interface for Configuration communication
+interface ConfigurationCommunicator {
+    fun onConfigError(errorMessage: String)
+    fun onConfigPingFailed()
+    fun onConfigPingSuccess()
+    fun onConfigCompleted()
+}
+
 // Data class for card read result
 data class CardData(
     val binNumber: String
