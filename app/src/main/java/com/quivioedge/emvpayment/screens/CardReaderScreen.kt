@@ -24,8 +24,9 @@ import com.quivioedge.emvpayment.ui_component.Header
 import com.quivioedge.emvpayment.ui_component.ModalBottomSheetComponent
 import com.quivioedge.emvpayment.ui_component.PriceLabel
 import com.rohan.emvcardreaderlib.CardBin
-import com.rohan.emvcardreaderlib.PosCardListener
-import com.rohan.emvcardreaderlib.PosTransactionListener
+import com.rohan.emvcardreaderlib.CardData
+import com.rohan.emvcardreaderlib.EMVTransactionCommunicator
+import com.rohan.emvcardreaderlib.SaleDetails
 import com.rohan.emvcardreaderlib.manager.DsiEMVManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,7 @@ fun CardReaderScreen(
 
     DisposableEffect(Unit) {
         CoroutineScope(Dispatchers.Main).launch {
-            addCardListener(cardReaderManager)
+            addCardListener(cardReaderManager, showSnackBar)
         }
 
         onDispose {
@@ -112,32 +113,25 @@ fun CardReaderScreen(
     }
 }
 
-
-private val posTransactionListener = object : PosTransactionListener {
-    override fun onTransactionSuccessFull(message: String) {
-
-    }
-
-    override fun onTransactionSFailed(message: String) {
-    }
-
-    override fun askToPrintReceipt(printBody: String) {
-    }
-
-}
-
-fun addCardListener(cardReaderManager: DsiEMVManager) {
-    cardReaderManager.registerCardReaderListener(object : PosCardListener {
-        override fun onDataReceived(cardBin: CardBin) {
-
+fun addCardListener(cardReaderManager: DsiEMVManager, showSnackBar: (String) -> Unit) {
+    cardReaderManager.registerListener(object: EMVTransactionCommunicator {
+        override fun onError(errorMessage: String) {
+            showSnackBar.invoke(errorMessage)
         }
 
-        override fun onCardFailed(message: String) {
-
+        override fun onCardReadSuccessfully(cardData: CardData) {
+            showSnackBar.invoke("Card read successfully with ${cardData.binNumber}")
         }
+
+        override fun onSaleTransactionCompleted(saleDetails: SaleDetails) {
+            showSnackBar.invoke("Transaction Completed successfully \nCard Type: ${saleDetails.cardType}")
+        }
+
+        override fun onShowMessage(message: String) {
+            showSnackBar.invoke(message)
+        }
+
     })
-
-    cardReaderManager.registerTransactionListener(posTransactionListener)
 }
 
 
