@@ -4,7 +4,7 @@ package com.rohan.emvcardreaderlib
 interface EMVTransactionCommunicator {
     fun onError(errorMessage: String)
     fun onCardReadSuccessfully(cardData: CardData)
-    fun onSaleTransactionCompleted(saleDetails: SaleDetails)
+    fun onSaleTransactionCompleted(saleDetails: SaleTransactionResponse)
     fun onShowMessage(message: String)
 }
 

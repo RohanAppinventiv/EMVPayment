@@ -3,6 +3,7 @@ package com.rohan.emvcardreaderlib.manager
 import android.content.Context
 import android.util.Log
 import com.datacap.android.ProcessTransactionResponseListener
+import com.rohan.emvcardreaderlib.CRTransactionResponse
 import com.rohan.emvcardreaderlib.CardData
 import com.rohan.emvcardreaderlib.ConfigurationCommunicator
 import com.rohan.emvcardreaderlib.CrState
@@ -10,9 +11,7 @@ import com.rohan.emvcardreaderlib.EMVTransactionCommunicator
 import com.rohan.emvcardreaderlib.ErrorCode
 import com.rohan.emvcardreaderlib.POSTransactionExecutor
 import com.rohan.emvcardreaderlib.PRINT_TAG
-import com.rohan.emvcardreaderlib.PosTransResponse
 import com.rohan.emvcardreaderlib.PosXMLExtractor
-import com.rohan.emvcardreaderlib.SaleDetails
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +30,6 @@ class DsiEMVManager(val context: Context) {
         PosXMLExtractor()
     }
 
-
     private suspend fun resetPinPad() {
         currentPosState = CrState.Reset
         posTransactionExecutor.resetPinPad()
@@ -49,35 +47,30 @@ class DsiEMVManager(val context: Context) {
 
     suspend fun collectCardDetails() = withContext(Dispatchers.IO) {
         resetPinPad()
-        if (currentPosState == CrState.IDLE) {
-            Log.d(PRINT_TAG, "collectCardDetails called, currentPosState: $currentPosState")
-            posTransactionExecutor.collectCardData()
-        } else {
-            Log.d(PRINT_TAG, "Cannot collect card details, transaction running")
-            communicator?.onError("Some other transactions running....")
-        }
+        posTransactionExecutor.collectCardData()
+        currentPosState == CrState.PrePaidCardDataCollect
     }
 
     private suspend fun downloadConfigParams() = withContext(Dispatchers.IO) {
-        Log.d(PRINT_TAG, "downloadConfigParams called, currentPosState: $currentPosState")
+        Log.d(PRINT_TAG, "Download Config Initiated: $currentPosState")
         posTransactionExecutor.downloadConfig()
     }
 
     suspend fun runSaleTransaction() = withContext(Dispatchers.IO) {
         resetPinPad()
-        if (currentPosState == CrState.IDLE) {
-            Log.d(PRINT_TAG, "Sale Transaction called, currentPosState: $currentPosState")
-            posTransactionExecutor.doSale()
-        } else {
-            Log.d(PRINT_TAG, "Cannot collect card details, transaction running")
-            communicator?.onError("Some other transactions running....")
-        }
+        posTransactionExecutor.doSale()
+        currentPosState = CrState.EmvSale
     }
 
-    fun registerListener(communicator: EMVTransactionCommunicator) {
+    fun registerListener(
+        communicator: EMVTransactionCommunicator,
+        configurationCommunicator: ConfigurationCommunicator? = null
+    ) {
         this.communicator = communicator
+        this.configCommunicator = configurationCommunicator
         posTransactionExecutor.addPosTransactionListener(processListener)
     }
+
 
     fun clearTransactionListener() {
         this.communicator = null
@@ -89,18 +82,18 @@ class DsiEMVManager(val context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             val response = posResponseExtractor.resolveResponse(res)
             when (response) {
-                is PosTransResponse.Error -> {
+                is CRTransactionResponse.Error -> {
                     checkErrorResponse(response)
                 }
 
-                is PosTransResponse.Success -> {
+                is CRTransactionResponse.Success -> {
                     checkSuccessResponse(response)
                 }
             }
         }
     }
 
-    private suspend fun checkErrorResponse(error: PosTransResponse.Error) {
+    private suspend fun checkErrorResponse(error: CRTransactionResponse.Error) {
         when (currentPosState) {
             CrState.RunConfig -> {
                 if (error.failureCode == ErrorCode.PSCS_ERROR.code) {
@@ -119,7 +112,7 @@ class DsiEMVManager(val context: Context) {
         currentPosState = CrState.IDLE
     }
 
-    private fun checkSuccessResponse(success: PosTransResponse.Success) {
+    private fun checkSuccessResponse(success: CRTransactionResponse.Success) {
         when (currentPosState) {
             CrState.PingConfig -> {
                 configCommunicator?.onConfigPingSuccess()
@@ -130,16 +123,7 @@ class DsiEMVManager(val context: Context) {
             }
 
             CrState.EmvSale -> {
-                communicator?.onSaleTransactionCompleted(
-                    SaleDetails(
-                        accountNumber = "", // Extract from XML if available
-                        status = "Success",
-                        refNo = "", // Extract from XML if available
-                        date = "", // Extract from XML if available
-                        time = "", // Extract from XML if available
-                        cardType = "" // Extract from XML if available
-                    )
-                )
+                communicator?.onSaleTransactionCompleted(success.transactionDetails)
             }
 
             CrState.PrePaidCardDataCollect -> {
@@ -152,9 +136,6 @@ class DsiEMVManager(val context: Context) {
 
             else -> Unit
         }
-
-        // Reset The state to IDLE
-        currentPosState = CrState.IDLE
     }
 
 }

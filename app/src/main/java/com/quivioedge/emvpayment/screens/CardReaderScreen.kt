@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,12 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quivioedge.emvpayment.ui_component.CTAsSection
 import com.quivioedge.emvpayment.ui_component.Header
-import com.quivioedge.emvpayment.ui_component.ModalBottomSheetComponent
 import com.quivioedge.emvpayment.ui_component.PriceLabel
-import com.rohan.emvcardreaderlib.CardBin
 import com.rohan.emvcardreaderlib.CardData
 import com.rohan.emvcardreaderlib.EMVTransactionCommunicator
-import com.rohan.emvcardreaderlib.SaleDetails
+import com.rohan.emvcardreaderlib.SaleTransactionResponse
 import com.rohan.emvcardreaderlib.manager.DsiEMVManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,16 +47,10 @@ fun CardReaderScreen(
     cardReaderManager: DsiEMVManager,
     showSnackBar: (String) -> Unit,
     onBack: () -> Unit,
-    isCardReaderConnected: Boolean,
     onConfigure: () -> Unit
 ) {
-    var bottomSheetVisibility by remember { mutableStateOf(false) }
-    val cardData = remember {
-        object {
-            var value: CardBin? = null
-        }
-    }
     val scope = rememberCoroutineScope()
+    var isConfigured by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         CoroutineScope(Dispatchers.Main).launch {
@@ -70,20 +62,6 @@ fun CardReaderScreen(
                 removeCardListener(cardReaderManager)
             }
         }
-    }
-
-    // AddListeners logic should be called here if needed
-    ModalBottomSheetComponent(
-        isSheetVisible = bottomSheetVisibility,
-        cardBin = com.quivioedge.emvlib.pos.CardBin(
-            cardHolderName = cardData.value?.cardHolderName ?: "",
-            expMonth = cardData.value?.expMonth ?: "",
-            expYear = cardData.value?.expYear ?: "",
-            initial6digits = cardData.value?.initial6digits ?: "",
-            last4digits = cardData.value?.last4digits ?: ""
-        )
-    ) {
-        bottomSheetVisibility = false
     }
 
     Column(
@@ -106,7 +84,7 @@ fun CardReaderScreen(
                 modifier = Modifier.align(Alignment.TopStart)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.Default.Home,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -120,18 +98,18 @@ fun CardReaderScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 8.dp)
                 .let {
-                    if (!isCardReaderConnected) it.clickable { onConfigure() } else it
+                    if (!isConfigured) it.clickable { onConfigure() } else it
                 }
         ) {
             Icon(
-                imageVector = if (isCardReaderConnected) Icons.Default.CheckCircle else Icons.Default.Clear,
-                contentDescription = if (isCardReaderConnected) "Connected" else "Not Connected",
-                tint = if (isCardReaderConnected) Color(0xFF4CAF50) else Color(0xFFF44336),
+                imageVector = if (isConfigured) Icons.Default.CheckCircle else Icons.Default.Clear,
+                contentDescription = if (isConfigured) "Connected" else "Not Connected",
+                tint = if (isConfigured) Color(0xFF4CAF50) else Color(0xFFF44336),
                 modifier = Modifier.padding(end = 8.dp)
             )
             Text(
-                text = if (isCardReaderConnected) "Connected" else "Tap to Configure",
-                color = if (isCardReaderConnected) Color(0xFF4CAF50) else Color(0xFFF44336),
+                text = if (isConfigured) "Connected" else "Tap to Configure",
+                color = if (isConfigured) Color(0xFF4CAF50) else Color(0xFFF44336),
                 fontSize = 18.sp,
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -159,7 +137,7 @@ fun addCardListener(cardReaderManager: DsiEMVManager, showSnackBar: (String) -> 
             showSnackBar.invoke("Card read successfully with ${cardData.binNumber}")
         }
 
-        override fun onSaleTransactionCompleted(saleDetails: SaleDetails) {
+        override fun onSaleTransactionCompleted(saleDetails: SaleTransactionResponse) {
             showSnackBar.invoke("Transaction Completed successfully \nCard Type: ${saleDetails.cardType}")
         }
 

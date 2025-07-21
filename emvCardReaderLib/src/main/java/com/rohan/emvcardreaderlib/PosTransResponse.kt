@@ -1,33 +1,62 @@
 package com.rohan.emvcardreaderlib
 
-sealed class PosTransResponse() {
-    data class Success(val successCode: String, val msg: String,val printData: String? = null, val transactionType: TransType): PosTransResponse()
-    data class Error(val failureCode: String, val msg: String,val printData: String? = null): PosTransResponse()
+sealed class CRTransactionResponse() {
+    data class Success(
+        val successCode: String,
+        val msg: String,
+        val printData: String? = null,
+        val transactionDetails: SaleTransactionResponse
+    ) : CRTransactionResponse()
+
+    data class Error(
+        val failureCode: String,
+        val msg: String,
+        val printData: String? = null
+    ) : CRTransactionResponse()
 }
 
-sealed class PosCardResponse(){
-    data class Success(val cardBin: CardBin): PosCardResponse()
-    data class Error(val failureCode: String, val msg: String): PosCardResponse()
+sealed class CRPrepaidResponse() {
+    data class Success(val cardBin: BIN) : CRPrepaidResponse()
+    data class Error(val failureCode: String, val msg: String) : CRPrepaidResponse()
 }
-
-
-data class CardBin(
-    val cardHolderName: String,
-    val expMonth: String,
-    val expYear: String,
-    val initial6digits: String,
-    val last4digits: String
-)
 
 
 enum class TransType {
     EMVParamDownload,
     EMVPadReset,
     EMVSale,
-    PrintReceipt,
     GetPrePaidStripe
 }
+
+data class BIN(
+    val value: String
+)
 
 enum class ErrorCode(val code: String) {
     PSCS_ERROR("000002")
 }
+
+data class SaleTransactionResponse(
+    val merchantID: String,
+    val acctNo: String,
+    val cardType: String,
+    val tranCode: String,
+    val authCode: String,
+    val captureStatus: String,
+    val refNo: String,
+    val amount: Amount,
+    val processData: String,
+    val recordNo: String,
+    val entryMethod: String,
+    val date: String,
+    val time: String,
+    val applicationLabel: String,
+    val payAPIId: String
+)
+
+data class Amount(
+    val purchase: String,
+    val gratuity: String,
+    val cashBack: String,
+    val authorize: String
+)

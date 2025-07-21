@@ -13,33 +13,31 @@ class PosXMLExtractor {
         return regex.find(xml)?.groupValues?.get(1)
     }
 
-    fun resolveResponse(xml: String): PosTransResponse {
-        return if (cmdStatus(xml) == "Success") {
-            PosTransResponse.Success(
+    fun resolveResponse(xml: String): CRTransactionResponse {
+        return if (cmdStatus(xml) == "Error") {
+            CRTransactionResponse.Error(
                 getCode(xml),
                 getMessage(xml),
                 extractPrintDataBlock(xml),
-                tranCode(xml),
             )
-        } else PosTransResponse.Error(
-            getCode(xml),
-            getMessage(xml),
-            extractPrintDataBlock(xml),
-        )
+        } else {
+            CRTransactionResponse.Success(
+                getCode(xml),
+                getMessage(xml),
+                extractPrintDataBlock(xml),
+                transactionDetails = mapToTranResponseData(xml)
+            )
+        }
     }
 
-    fun resolveCardData(xml: String): PosCardResponse {
+    fun resolvePrePaidCardData(xml: String): CRPrepaidResponse {
         return if (cmdStatus(xml) == "Success") {
-            PosCardResponse.Success(
-                CardBin(
-                    cardHolderName = cardHolderName(xml) ?: "",
-                    expYear = cardExpYear(xml),
-                    expMonth = cardExpMonth(xml),
-                    initial6digits = cardInitial6(xml),
-                    last4digits = cardLast4(xml)
+            CRPrepaidResponse.Success(
+                BIN(
+                    value = ""
                 )
             )
-        } else PosCardResponse.Error(
+        } else CRPrepaidResponse.Error(
             getCode(xml),
             getMessage(xml)
         )
@@ -50,33 +48,9 @@ class PosXMLExtractor {
         return regex.find(xml)?.value
     }
 
-    private fun cardHolderName(xml: String) =
-        getTag(xml, "CardholderName")  // Some Cards don't fetch card holder's Name
-
-    private fun cardExpMonth(xml: String) = requireNotNull(getTag(xml, "ExpDateMonth")) {
-        "Missing <ExpDateMonth> in response"
-    }
-
-    private fun cardExpYear(xml: String) = requireNotNull(getTag(xml, "ExpDateYear")) {
-        "Missing <ExpDateYear> in response"
-    }
-
-    private fun cardInitial6(xml: String) = requireNotNull(getTag(xml, "CardBin")) {
-        "Missing <CardBin> in response"
-    }
-
-    private fun cardLast4(xml: String) = requireNotNull(getTag(xml, "Last4")) {
-        "Missing <Last4> in response"
-    }
-
     private fun cmdStatus(xml: String) = requireNotNull(getTag(xml, "CmdStatus")) {
         "Missing <CmdStatus> in response"
     }
-
-    private fun tranCode(xml: String) =
-       TransType.valueOf(
-            getTag(xml, "TranCode") ?: TransType.EMVPadReset.name
-        )
 
     private fun getCode(xml: String) = requireNotNull(getTag(xml, "DSIXReturnCode")) {
         "Missing <DSIXReturnCode> in response"
@@ -84,5 +58,49 @@ class PosXMLExtractor {
 
     private fun getMessage(xml: String) = requireNotNull(getTag(xml, "TextResponse")) {
         "Missing <TextResponse> in response"
+    }
+
+    fun extractTranResponseData(xml: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+
+        // Extract <TranResponse> block
+        val tranResponseRegex = Regex("(?s)<TranResponse>(.*?)</TranResponse>", RegexOption.IGNORE_CASE)
+        val tranResponseMatch = tranResponseRegex.find(xml)?.groupValues?.get(1) ?: return emptyMap()
+
+        // Match all <Key>value</Key> pairs within <TranResponse>
+        val keyValueRegex = Regex("<(\\w+)>(.*?)</\\1>", RegexOption.IGNORE_CASE)
+        keyValueRegex.findAll(tranResponseMatch).forEach { matchResult ->
+            val key = matchResult.groupValues[1]
+            val value = matchResult.groupValues[2].trim()
+            result[key] = value
+        }
+
+        return result
+    }
+
+    fun mapToTranResponseData(xml: String): SaleTransactionResponse {
+        val map = extractTranResponseData(xml)
+        return SaleTransactionResponse(
+            merchantID = map["MerchantID"] ?: "",
+            acctNo = map["AcctNo"] ?: "",
+            cardType = map["CardType"] ?: "",
+            tranCode = map["TranCode"] ?: "",
+            authCode = map["AuthCode"] ?: "",
+            captureStatus = map["CaptureStatus"] ?: "",
+            refNo = map["RefNo"] ?: "",
+            amount = Amount(
+                purchase = map["Purchase"] ?: "0.00",
+                gratuity = map["Gratuity"] ?: "0.00",
+                cashBack = map["CashBack"] ?: "0.00",
+                authorize = map["Authorize"] ?: "0.00"
+            ),
+            processData = map["ProcessData"] ?: "",
+            recordNo = map["RecordNo"] ?: "",
+            entryMethod = map["EntryMethod"] ?: "",
+            date = map["Date"] ?: "",
+            time = map["Time"] ?: "",
+            applicationLabel = map["ApplicationLabel"] ?: "",
+            payAPIId = map["PayAPI_Id"] ?: ""
+        )
     }
 }
