@@ -20,7 +20,6 @@ sealed class CRPrepaidResponse() {
     data class Error(val failureCode: String, val msg: String) : CRPrepaidResponse()
 }
 
-
 enum class TransType {
     EMVParamDownload,
     EMVPadReset,

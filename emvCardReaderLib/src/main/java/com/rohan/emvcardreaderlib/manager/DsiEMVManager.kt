@@ -71,7 +71,6 @@ class DsiEMVManager(val context: Context) {
         posTransactionExecutor.addPosTransactionListener(processListener)
     }
 
-
     fun clearTransactionListener() {
         this.communicator = null
         posTransactionExecutor.clearAllListeners()

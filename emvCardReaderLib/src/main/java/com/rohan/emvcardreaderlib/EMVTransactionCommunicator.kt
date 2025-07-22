@@ -20,13 +20,3 @@ interface ConfigurationCommunicator {
 data class CardData(
     val binNumber: String
 )
-
-// Data class for sale transaction result
-data class SaleDetails(
-    val accountNumber: String,
-    val status: String,
-    val refNo: String,
-    val date: String,
-    val time: String,
-    val cardType: String
-) 

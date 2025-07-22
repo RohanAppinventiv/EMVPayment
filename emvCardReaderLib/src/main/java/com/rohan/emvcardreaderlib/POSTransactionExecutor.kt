@@ -56,10 +56,6 @@ class POSTransactionExecutor(context: Context) {
         dsiEMVAndroidLib.AddProcessTransactionResponseListener(callback)
     }
 
-    fun addCollectCardDataListener(callback: ProcessTransactionResponseListener){
-        dsiEMVAndroidLib.AddCollectCardDataResponseListener(callback)
-    }
-
     fun clearAllListeners(){
         dsiEMVAndroidLib.ClearProcessTransactionResponseListeners()
         dsiEMVAndroidLib.ClearCollectCardDataResponseListeners()
