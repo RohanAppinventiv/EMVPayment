@@ -3,6 +3,7 @@ package com.rohan.emvcardreaderlib.manager
 import android.content.Context
 import android.util.Log
 import com.datacap.android.ProcessTransactionResponseListener
+import com.rohan.emvcardreaderlib.BridgeCommunicator
 import com.rohan.emvcardreaderlib.CRTransactionResponse
 import com.rohan.emvcardreaderlib.CardData
 import com.rohan.emvcardreaderlib.ConfigurationCommunicator
@@ -17,7 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class DsiEMVManager(val context: Context) {
+class DsiEMVManager(
+    val context: Context
+) {
     private var currentPosState: CrState = CrState.IDLE
     private var communicator: EMVTransactionCommunicator? = null
     private var configCommunicator: ConfigurationCommunicator? = null
@@ -48,7 +51,8 @@ class DsiEMVManager(val context: Context) {
     suspend fun collectCardDetails() = withContext(Dispatchers.IO) {
         resetPinPad()
         posTransactionExecutor.collectCardData()
-        currentPosState == CrState.PrePaidCardDataCollect
+        currentPosState = CrState.PrePaidCardDataCollect
+
     }
 
     private suspend fun downloadConfigParams() = withContext(Dispatchers.IO) {
